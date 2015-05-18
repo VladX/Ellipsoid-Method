@@ -5,7 +5,10 @@
 \usepackage{listingsutf8}
 \usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{enumerate}
 \numberwithin{equation}{section}
+\newtheorem{lemma}{Лемма}
 
 \title{\textbf{Метод эллипсоидов}}
 \author{Самсонов Владислав\\396 группа ФИВТ ПМИ\\e-mail: \href{mailto:vvladxx@gmail.com}{vvladxx@gmail.com}}
@@ -16,7 +19,7 @@
 
 \section{Введение}\
 
-В данной работе я рассматриваю алгоритмическую реализацию метода эллипсоидов на языке C++ для решения задач линейного программирования.
+В данной работе рассматривается алгоритмическая реализация метода эллипсоидов на языке C++ для решения задач линейного программирования.
 
 Впервые данный метод предложили Н. З. Шор \cite{Shor}, Д. Б. Юдин и А. С. Немировский \cite{Udin}. Впоследствии, Л. Хачиян \cite{K} показал как применять метод эллипсоидов для решения задач линейного программирования.
 
@@ -44,18 +47,82 @@ $$P:=\{Ax \le b\}$$
 	y &\ge 0 \Leftrightarrow -y \le 0 \nonumber \\
 	b^Ty-c^Tx &\le 0\nonumber
 \end{align}
-Любое решение \ref{eq:eli} является оптимальным решением \ref{eq:li}. Таким образом, применяя метод эллипсоидов к \ref{eq:eli}, получаем решение задачи линейного программирования \ref{eq:li}. Поскольку входные данные для \ref{eq:eli} полиномиально зависят от \ref{eq:li}, полученный алгоритм тоже будет полиномиальным (при условии, что метод эллипсоидов имеет полиномиальное время).
+Любое допустимое решение \ref{eq:eli} является оптимальным решением \ref{eq:li}. Таким образом, применяя метод эллипсоидов к \ref{eq:eli}, получаем решение задачи линейного программирования \ref{eq:li}. Поскольку входные данные для \ref{eq:eli} полиномиально зависят от \ref{eq:li}, полученный алгоритм тоже будет полиномиальным (при условии, что метод эллипсоидов имеет полиномиальное время).
+\subsection{Определения}
+Назовём эллипсоидом $E \subset \mathbb{R}^n$ с центром в точке $x_0 \in \mathbb{R}^n$ и направляющей матрицей $E_0 \in \mathbb{R}^{n \times n}$ множество точек
+$$\{x \in \mathbb{R}^n : (x-x_0)^TE_0^{-1}(x-x_0) \le 1\}$$
+Матрица $E_0$ -- симметричная, положительно определённая.\\
+В частном случае, если $E_0=R^2I_n$, где $I_n$ -- единичная матрица, то $E$ -- $n$-мерный шар радиуса $R$.
+\subsection{Метод эллипсоидов}
+Пусть известно следующее:
+\begin{enumerate}[(1)]
+\item $\varepsilon$ --- если $P$ невырожденный, то он содержит шар, а значит $\exists \varepsilon$, т.ч. $vol(P) \ge \varepsilon$.
+\item Эллипсоид $E_0$, т.ч. $P\subset E_0$, если $P$ ограничен.
+\end{enumerate}
+Тогда метод эллипсоидов описывается так:
+\begin{enumerate}[1.]
+\item $k=0$
+\item Если центр $x_k$ эллипсоида $E_k$ лежит в $P$ (другими словами, выполнено $Ax_k \le b$), то найдено решение.
+\item Если $vol(E_k) < \varepsilon$, то $P$ вырожден или неограничен.
+\item Иначе, пусть $a_i$ -- первая строка матрицы $A$, для которой выполнено $a_ix_k > b$. Полагаем
+$$E_{k+1}=\frac{n^2}{n^2-1}(E_k-\frac{2}{n+1}CC^T)$$
+$$x_{k+1} = x_k-\frac{1}{n+1}C$$, где $C=\frac{Aa_i^T}{\sqrt{a_iAa_i^T}}$. Возвращаемся на 2-ой шаг алгоритма, полагая $k=k+1$.
+\end{enumerate}
+
+Доказательство корректности формул для переходов $E_k \rightarrow E_{k+1}$ и $x_k \rightarrow x_{k+1}$ можно найти в \cite{Gr}.
+
+Осталось понять, как выбирать $\varepsilon$ и $E_0$.
+\begin{lemma}
+Если $P \ne \emptyset$ и бинарное представление $A$ конечно, то
+$$vol(P) \ge 2^{n^3}(\prod_{i,j}{(A_{ij}+1)})^{-(n+1)}$$
+\end{lemma}
+Доказательство можно найти в \cite{Gr2}.
+
+Исходя из леммы, можно выбрать
+$$\varepsilon = 2^{n^3}(\prod_{i,j}{(A_{ij}+1)})^{-(n+1)}$$
+
+\begin{lemma}
+$P$ лежит в шаре с центром в 0 и радиусом
+$$R=\sqrt{n}2^{-n^2}\prod_{i,j}{(A_{ij}+1)}\prod_{i}{(b_i+1)}$$
+\end{lemma}
+Доказательство можно найти в \cite{Gr}.
+
+В качестве $E_0$ выбираем шар $\mathbb{B}(0, R)$.
+\begin{lemma}
+$$\frac{vol(E_{k+1})}{vol(E_k)}<e^{-\frac{1}{2(n+1)}}$$
+\end{lemma}
+Лемма позволяет оценить скорость сходимости алгоритма. Действительно, после $k$ итераций $vol(E_k) \le vol(E_0)e^{-\frac{k}{2(n+1)}}$. Если решение существует, то верхняя оценка количества итераций равна $2(n+1)\ln{\frac{vol(E_0)}{vol(P)}}$.
+\begin{proof}
+Воспользуемся тем фактом, что объем эллипсоида пропорционален произведению его осей. Имеем
+$$E_{k+1}=\frac{n^2}{n^2-1}(E_k-\frac{2}{n+1}CC^T)$$
+Тогда
+$$\frac{vol(E_{k+1})}{vol(E_k)}=\frac{(\frac{n}{n+1})(\frac{n^2}{n^2-1})^{\frac{n-1}{2}}}{1} = \frac{n}{n+1}(\frac{n^2}{n^2-1})^{\frac{n-1}{2}}$$
+Используем неравенство $1+x < e^x$, где $x>0$
+$$< e^{-\frac{1}{n+1}}e^{\frac{n-1}{2(n^2-1)}} = e^{-\frac{1}{n+1}}e^{\frac{1}{2(n+1)}} = e^{-\frac{1}{2(n+1)}}$$
+\end{proof}
 
 \section{Реализация алгоритма}
-\subsection{Код}
+\subsection{Описание}
+Для удобства, весь приведённый здесь код также доступен по ссылке:\\
+\href{https://github.com/VladX/Ellipsoid-Method}{https://github.com/VladX/Ellipsoid-Method}
 
-\lstinputlisting[language=C++, breaklines=true, escapeinside={\%*}{*)}, inputencoding=utf8, basicstyle=\footnotesize]{ellipsoid.cpp}
+На вход алгоритму подается матрица $A$ и вектор $b$. Алгоритм находит произвольное решение системы $Ax \le b$, либо выводит, что решений нет. В алгоритме не производится никаких дополнительных проверок на корректность матрицы $A$.
+
+Первой строкой считывается число $n$ --- размер матрицы $A$. Матрица считается квадратной. Если это не так, то нужно дополнить матрицу нулями до квадратной.
+
+Далее считывается $n^2$ чисел --- элементы матрицы $A$.
+
+Последней строкой считывается $n$ чисел --- элементы вектора b.
+\subsection{Код на C++}
+\lstinputlisting[language=C++, breaklines=true, escapeinside={\%*}{*)}, inputencoding=utf8, basicstyle=\footnotesize\ttfamily, numbers=left, numberstyle=\footnotesize, frame=single]{ellipsoid.cpp}
 
 \begin{thebibliography}{6}
 \bibitem{Shor} Шор Н.З. Использование операций растяжения пространства в задачах минимизации выпуклых функций. Кибернетика, 13(1):94–96, 1970.
 \bibitem{Udin} Юдин Д.Б. и Немировский А.С. Вычислительная сложность и эффективные методы решения выпуклых оптимизационных задач. Экономика и математические методы, 12:357–369, 1976.
 \bibitem{K} Л. Хачиян. Полиномиальный алгоритм в линейном программировании. Доклады академии наук СССР, 244:1093–1097, 1979.
-\bibitem{R} S. Rebennack. Ellipsoid Method. Encyclopedia of Optimization, Second Edition, C.A. Floudas and P.M. Pardalos (Eds.), Springer, pp. 890–899, 2008
+\bibitem{R} S. Rebennack. Ellipsoid Method. Encyclopedia of Optimization, Second Edition, C.A. Floudas and P.M. Pardalos (Eds.), Springer, pp. 890–899, 2008.
+\bibitem{Gr} M. Grötschel, L. Lovász, and A. Schrijver. Geometric Algorithms and Combinatorial Optimization, volume 2 of Algorithms and Combinatorics. Springer, 1988.
+\bibitem{Gr2} M. Grötschel, L. Lovász, and A. Schrijver. The Ellipsoid Method and Its Consequences in Combinatorial Optimization. Combinatorica, 1:169–197, 1981.
 \end{thebibliography}
 
 \end{document}
